@@ -1,0 +1,98 @@
+* Intro
+  Bbbridge is an Emacs Lisp package designed to seamlessly integrate [[https://babashka.org/][Babashka]] code into your Emacs environment.
+
+  Babashka is widely adopted for scripting due to its lightweight nature and robust Clojure compatibility. However, integrating Babashka scripts into Emacs Lisp workflows often involves calling shell commands (which can be error-prone and non-idempotent), manual handling serialization and deserialization of data, and command-line parameters.
+
+  Bbbridge, on the other hand, uses the legendary [[https://github.com/clojure-emacs/cider][CIDER]] and its companion library, the well-known [[https://github.com/clojure-emacs/parseedn][parseedn]], which allows seamless conversion between Clojure EDN data and Emacs Lisp structures.
+
+  This eliminates the need for shell calls entirely. With Bbbridge, your Clojure definitions become native Emacs Lisp functions and variables, enabling a smooth and efficient workflow.
+
+* Status
+  This project is in its very early stages. As such, it is unstable, and the API is subject to change without notice.
+
+* Installation
+  #+begin_src emacs-lisp
+    (use-package bbbridge
+      :init
+      (unless (package-installed-p 'bbbridge)
+        (package-vc-install
+         '(bbbridge
+           :vc-backend Git
+           :url "https://github.com/a13/bbbridge"
+           :branch "master"))))
+
+  #+end_src
+
+  or, using Quelpa:
+  #+begin_src emacs-lisp
+    (use-package bbbridge
+      :quelpa
+      (bbbridge :repo "a13/bbbridge" :fetcher github))
+  #+end_src
+
+* Usage
+  #+begin_src emacs-lisp
+    ;; M-x bbbridge-jack-in or
+    (bbbridge-jack-in nil) ; params are hardcoded so far
+    ;; (bbbridge-add-classpath "~/path/to/scripts/classpath") ; if needed
+    (bbbridge-require 'bbbridge.example "example")
+  #+end_src
+
+  More examples:
+
+  #+begin_src emacs-lisp
+    (when nil
+      ;; Start or connect to Cider REPL
+      ;; it's possible to reuse any cider-repl buffer instead of bb
+      (setq bbbridge--connection
+            (cider-current-repl nil 'ensure))
+      ;; or just start a new babashka-driven one
+      (bbbridge-jack-in nil)
+
+      ;; now we can "require" a ns with an alias
+      (bbbridge-require 'bbbridge.example "example")
+      ;; (bbbridge-require 'bbbridge.core "core")
+      ;; and these definition are now available as Emacs lisp functions
+      (example-with-docs 1 2 3)
+      (example-take-foo '((:foo . "wow, we can do keys!")))
+      (example-keys-and-vectors '((:foo . "wow, we can do keys"))
+                                ["and" ["nested" "vectors"]])
+      (example-join-newlines ["foo" "bar"])
+      ;; We can also use definitions that are not defns
+      example-somevar
+      ;; but we can distinguish them from defs that are
+      (example-somefn 3)
+      ;; and this is what the generated wrappers look like
+      (message "%S" (symbol-function 'example-quuz))
+      ;; Documentation is also available
+      (documentation 'example-with-docs)
+      (documentation-property 'example-somevar 'variable-documentation)
+
+      ;; We have to ignore some of them, but most of them work
+      (bbbridge-require 'clojure.core "clj-core")
+      (clj-core-+ 1 2 3)
+      (clj-core-slurp "https://postman-echo.com/get")
+      ;; see parseedn for custom literals
+      (clj-core-inst-ms
+       (cons 'edn-inst (current-time)))
+
+      (clj-core-uuid? (clj-core-random-uuid))
+
+      ;; any other core namespace
+      (bbbridge-require 'clojure.set "clj-set")
+      (thread-last '(edn-set (3 5))
+                   (clj-set-intersection '(edn-set (1 2 3 5)))
+                   (clj-set-difference '(edn-set (4 5 6))))
+      nil)
+  #+end_src
+
+* Limitations
+  - Defmultis and variables that store #object are ignored.
+  - No support for IFn other than functions (/fn?/)
+  - No argument information (it uses /&rest/ in wrappers)
+  - No support for custom objects/functions
+  - Macros don't work (because /apply/ only works with functions)
+  - Complex data structures/non-basic types can break things
+
+* See also
+  - https://github.com/clojure-emacs/clomacs
