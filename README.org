@@ -63,7 +63,7 @@
       ;; but we can distinguish them from defs that are
       (example-somefn 3)
       ;; and this is what the generated wrappers look like
-      (message "%S" (symbol-function 'example-quuz))
+      (message "%S" (symbol-function 'example-somefn))
       ;; Documentation is also available
       (documentation 'example-with-docs)
       (documentation-property 'example-somevar 'variable-documentation)
@@ -71,7 +71,15 @@
       ;; We have to ignore some of them, but most of them work
       (bbbridge-require 'clojure.core "clj-core")
       (clj-core-+ 1 2 3)
-      (clj-core-slurp "https://postman-echo.com/get")
+      ;; Let's parse a JSON using internal json.el
+      (json-parse-string
+       (clj-core-slurp "https://postman-echo.com/get"))
+
+      ;; or cheshire
+      (bbbridge-require 'cheshire.core "cheshire")
+      (cheshire-parse-string
+       (clj-core-slurp "https://postman-echo.com/get"))
+
       ;; see parseedn for custom literals
       (clj-core-inst-ms
        (cons 'edn-inst (current-time)))
@@ -96,3 +104,4 @@
 
 * See also
   - https://github.com/clojure-emacs/clomacs
+  - https://github.com/andreyorst/require-fennel.el
